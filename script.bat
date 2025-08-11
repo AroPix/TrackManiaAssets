@@ -97,7 +97,7 @@ REM =========================
 :UninstallUVME
 echo.
 echo === Uninstalling UVME ===
-echo WIP!
+"C:\Program Files (x86)\TmNationsForever\uvme\unins000.exe"
 call :PauseReturn
 goto MainMenu
 
@@ -156,7 +156,7 @@ copy /y "%TEMPNEW%" "%CURRENT_FULL%" >nul
 if errorlevel 1 (
     echo The running script is locked; scheduling a deferred swap...
     REM Defer replacement after this process exits (short delay)
-    set "SWAPCMD=ping -n 2 127.0.0.1 >nul ^&^& copy /y ""%TEMPNEW%"" ""%CURRENT_FULL%"" >nul ^&^& del ""%TEMPNEW%"""
+    set "SWAPCMD=ping -n 2 127.0.0.1 >nul ^&^& copy /y \"%TEMPNEW%\" \"%CURRENT_FULL%\" >nul ^&^& del \"%TEMPNEW%\""
     start "" cmd /c %SWAPCMD%
     echo Update will finalize after you close this window.
 ) else (
