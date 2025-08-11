@@ -1,6 +1,6 @@
-:: === Ensure running inside cmd.exe ===
-if /i not "%CMDCMDLINE%"=="" goto :SkipRelaunch
-start "" cmd /k "%~f0"
+:: --- Relaunch in cmd.exe exactly once ---
+if "%~1"=="__in_cmd__" goto :SkipRelaunch
+start "" "%ComSpec%" /k "%~f0" __in_cmd__
 exit /b
 :SkipRelaunch
 
