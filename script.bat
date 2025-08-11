@@ -26,14 +26,16 @@ echo =========================================
 echo  1) Install UVME
 echo  2) Uninstall UVME
 echo  3) Update Script
+echo  4) Download Car Skin
 echo  Q) Quit
 echo.
 set "opt="
-set /p "opt=Select option (1/2/3/else to quit): "
+set /p "opt=Select option (1/2/3/4/else to quit): "
 
 if /i "%opt%"=="1" goto InstallUVME
 if /i "%opt%"=="2" goto UninstallUVME
 if /i "%opt%"=="3" goto UpdateScript
+if /i "%opt%"=="4" goto DownloadCarSkin
 
 goto Quit
 
@@ -97,6 +99,7 @@ REM =========================
 :UninstallUVME
 echo.
 echo === Uninstalling UVME ===
+echo Press anything after console looks empty!
 "C:\Program Files (x86)\TmNationsForever\uvme\unins000.exe"
 call :PauseReturn
 goto MainMenu
@@ -162,6 +165,101 @@ if errorlevel 1 (
 ) else (
     echo Running script overwritten successfully.
     del "%TEMPNEW%" >nul 2>&1
+)
+
+call :PauseReturn
+goto MainMenu
+
+
+REM =========================
+REM =   Download Car Skin   =
+REM =========================
+:DownloadCarSkin
+echo.
+echo === Download Car Skin ===
+
+REM --- Verify busybox/wget availability ---
+if not exist "%BUSYBOX%" (
+    echo ERROR: busybox not found at "%BUSYBOX%".
+    call :PauseReturn
+    goto MainMenu
+)
+
+REM Target: C:\users\steamuser\Documents\TmForever\Skins\Vehicles\CarCommon
+set "SKINS_BASE=C:\users\steamuser\Documents\TmForever\Skins"
+if not exist "%SKINS_BASE%" mkdir "%SKINS_BASE%"
+set "VEH_PARENT=%SKINS_BASE%\Vehicles"
+if not exist "%VEH_PARENT%" mkdir "%VEH_PARENT%"
+set "VEH_DIR=%VEH_PARENT%\CarCommon"
+if not exist "%VEH_DIR%" mkdir "%VEH_DIR%"
+
+REM Ask for a DIRECT download URL
+set "DLURL="
+set "TMPVBS=%TEMP%\ask_skin.vbs"
+> "%TMPVBS%" echo Dim s : s = InputBox("Click on the copy link button on Maniapark for any skin:", "Download Car Skin", "")
+>> "%TMPVBS%" echo If IsEmpty(s) Then s = ""
+>> "%TMPVBS%" echo WScript.StdOut.Write s
+for /f "usebackq delims=" %%A in (cscript //nologo "%TMPVBS%") do set "DLURL=%%A"
+del "%TMPVBS%" >nul 2>&1
+
+if not defined DLURL (
+    echo No URL entered. Aborting.
+    call :PauseReturn
+    goto MainMenu
+)
+
+echo URL: %DLURL%
+
+REM --- Derive filename from URL ---
+set "FNAME=%DLURL%"
+for /f "tokens=1* delims=?" %%a in ("%FNAME%") do (
+    if "%%b" neq "" (set "FNAME=%%b") else (set "FNAME=%%a")
+)
+
+REM If still a path, take the last segment
+set "TMPSEG=%FNAME%"
+:__slashloop
+for /f "tokens=1* delims=/" %%a in ("%TMPSEG%") do (
+    if "%%b"=="" (set "FNAME=%%a") else (set "TMPSEG=%%b" & goto __slashloop)
+)
+
+REM Ensure .zip extension
+if /i not "%FNAME:~-4%"==".zip" set "FNAME=%FNAME%.zip"
+
+REM Final paths
+set "OUTFILE=%VEH_DIR%\%FNAME%"
+set "OUTTMP=%OUTFILE%.new"
+
+echo.
+echo Saving to: "%OUTFILE%"
+echo Downloading...
+"%BUSYBOX%" wget --no-check-certificate -O "%OUTTMP%" "%DLURL%"
+if errorlevel 1 (
+    echo Download failed. Check the URL and try again.
+    if exist "%OUTTMP%" del "%OUTTMP%" >nul 2>&1
+    call :PauseReturn
+    goto MainMenu
+)
+
+REM Basic sanity check (non-empty file)
+set "NEWSIZE="
+for %%A in ("%OUTTMP%") do set "NEWSIZE=%%~zA"
+if not defined NEWSIZE set "NEWSIZE=0"
+
+if %NEWSIZE% LSS 10 (
+    echo Downloaded file looks too small (%NEWSIZE% bytes). Aborting.
+    del "%OUTTMP%" >nul 2>&1
+    call :PauseReturn
+    goto MainMenu
+)
+
+REM Move into place
+move /y "%OUTTMP%" "%OUTFILE%" >nul
+if errorlevel 1 (
+    echo Could not finalize download.
+) else (
+    echo Done. Saved skin to: "%OUTFILE%"
+    echo ^(ZIPs in CarCommon are picked up by TrackMania.^)
 )
 
 call :PauseReturn
