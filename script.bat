@@ -1,3 +1,9 @@
+:: === Ensure running inside cmd.exe ===
+if /i not "%CMDCMDLINE%"=="" goto :SkipRelaunch
+start "" cmd /k "%~f0"
+exit /b
+:SkipRelaunch
+
 @echo off
 setlocal EnableExtensions EnableDelayedExpansion
 
