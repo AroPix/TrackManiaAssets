@@ -7,6 +7,7 @@ REM =========================
 set "URL=https://github.com/AroPix/TrackManiaAssets/releases/download/1.0.0/TmNationsForever_UVME_v3.1.exe"
 set "FILE=TmNationsForever_UVME_v3.1.exe"
 set "BUSYBOX=C:\busybox.exe"
+set "SCRIPT=https://github.com/AroPix/TrackManiaAssets/raw/refs/heads/main/script.bat"
 
 REM =========================
 REM =       UI Loop         =
@@ -100,9 +101,66 @@ REM =========================
 :UpdateScript
 echo.
 echo === Updating Script ===
-echo WIP!
+
+REM --- Verify busybox/wget availability ---
+if not exist "%BUSYBOX%" (
+    echo ERROR: busybox not found at "%BUSYBOX%".
+    call :PauseReturn
+    goto MainMenu
+)
+
+REM Figure out names/paths
+set "CURRENT_FULL=%~f0"
+set "CURRENT_NAME=%~nx0"
+set "TARGET=C:\%CURRENT_NAME%"
+set "TEMPNEW=C:\%CURRENT_NAME%.new"
+
+echo Downloading latest script to "%TEMPNEW%" ...
+"%BUSYBOX%" wget --no-check-certificate -O "%TEMPNEW%" "%SCRIPT%"
+if errorlevel 1 (
+    echo Download failed.
+    if exist "%TEMPNEW%" del "%TEMPNEW%" >nul 2>&1
+    call :PauseReturn
+    goto MainMenu
+)
+
+REM Basic sanity check (non-empty file)
+for %%A in ("%TEMPNEW%") do set "NEWSIZE=%%~zA"
+if not defined NEWSIZE set "NEWSIZE=0"
+if %NEWSIZE% LSS 10 (
+    echo Downloaded file looks too small (%NEWSIZE% bytes). Aborting.
+    del "%TEMPNEW%" >nul 2>&1
+    call :PauseReturn
+    goto MainMenu
+)
+
+echo.
+echo Applying update...
+
+REM Always ensure C:\ has the updated copy
+copy /y "%TEMPNEW%" "%TARGET%" >nul
+if errorlevel 1 (
+    echo WARNING: Could not write to "%TARGET%".
+) else (
+    echo Wrote updated script to "%TARGET%".
+)
+
+REM Try to overwrite the running script directly
+copy /y "%TEMPNEW%" "%CURRENT_FULL%" >nul
+if errorlevel 1 (
+    echo The running script is locked; scheduling a deferred swap...
+    REM Defer replacement after this process exits (short delay)
+    set "SWAPCMD=ping -n 2 127.0.0.1 >nul ^&^& copy /y ""%TEMPNEW%"" ""%CURRENT_FULL%"" >nul ^&^& del ""%TEMPNEW%"""
+    start "" cmd /c %SWAPCMD%
+    echo Update will finalize after you close this window.
+) else (
+    echo Running script overwritten successfully.
+    del "%TEMPNEW%" >nul 2>&1
+)
+
 call :PauseReturn
 goto MainMenu
+
 
 REM =========================
 REM =   Helper Routines     =
