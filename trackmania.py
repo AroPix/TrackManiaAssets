@@ -18,18 +18,18 @@ class TrackManiaUndefinedGameVersionError(Exception):
     def __init(self, message = "Neither Nations Forever nor United Forever was found!"):
         self.message = message
 
-def get_path_united():
-    return windows_path_to_linux_path(find_through_uninstaller("TmUnitedForever_is1", "InstallLocation"))
+def get_path_united(pfx: str = None):
+    return windows_path_to_linux_path(find_through_uninstaller("TmUnitedForever_is1", "InstallLocation", pfx))
 
-def get_path_nations():
-    return windows_path_to_linux_path(find_through_uninstaller("TmNationsForever_is1", "InstallLocation"))
+def get_path_nations(pfx: str = None):
+    return windows_path_to_linux_path(find_through_uninstaller("TmNationsForever_is1", "InstallLocation", pfx))
 
 def determine_united(pfx: str)-> tuple[bool, str, str]:
-    united = get_path_united()
+    united = get_path_united(pfx)
     if united:
         return True, united, get_home_path(pfx) + "/Documents/TmForever"
     else:
-        nations = get_path_nations()
+        nations = get_path_nations(pfx)
         if nations:
             return False, nations, get_home_path(pfx) + "/Documents/TmForever"
         raise TrackManiaForeverNotFoundError()
