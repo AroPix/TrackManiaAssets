@@ -1,12 +1,11 @@
 import threading
 import flet as ft
 from dotenv import load_dotenv
-
+import argparse
 from trackmania import TrackMania
 
 
 OPTIONS = ["Alpha2", "Beta", "Gamma", "Delta", "Epsilon"]
-DISABLE_SSL_VERIFY = False
 
 load_dotenv()
 tm = TrackMania()
@@ -134,15 +133,31 @@ def main(page: ft.Page):
 
 
 if __name__ == "__main__":
-    #run_windows("C:\script.bat")
+    parser = argparse.ArgumentParser(description="TrackMania helper")
+    parser.add_argument(
+        "--install",
+        action="store_true",
+        help="Install the modloader and exit",
+    )
+    parser.add_argument(
+        "--installtwinkie",
+        action="store_true",
+        help="Install Twinkietweaks inside TMLoader. Press launch once on the TwinkieTweaks profile!",
+    )
+    parser.add_argument(
+        "--script",
+        action="store_true",
+        help="Test things",
+    )
+    args = parser.parse_args()
 
-    tm = TrackMania()
+    if args.install:
+        tm = TrackMania()
+        tm.install_modloader()
+    if args.script:
+        print("!!!!")
+    if args.installtwinkie:
+        tm.install_twinkietweaks()
 
-    #tm.download_texture_mod("http://maniapark.com/mod/KVfUvH_MTUGhwNA2I0Gykg/download1?Mickael Jacksonmod.zip")
-    #tm.start_trackmania()
-
-
-    #ft.app(target=main)
-    #tm.create_tmloader_profile("tejhefgfwe", ["Twinkie"])
-
-    print(tm.get_profiles())
+    else:
+        ft.app(target=main)
