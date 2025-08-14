@@ -19,10 +19,10 @@ class TrackManiaUndefinedGameVersionError(Exception):
         self.message = message
 
 def get_path_united(pfx: str = None):
-    return windows_path_to_linux_path(find_through_uninstaller("TmUnitedForever_is1", "InstallLocation", pfx))
+    return windows_path_to_linux_path(find_through_uninstaller("TmUnitedForever_is1", "InstallLocation", pfx), pfx)
 
 def get_path_nations(pfx: str = None):
-    return windows_path_to_linux_path(find_through_uninstaller("TmNationsForever_is1", "InstallLocation", pfx))
+    return windows_path_to_linux_path(find_through_uninstaller("TmNationsForever_is1", "InstallLocation", pfx), pfx)
 
 def determine_united(pfx: str)-> tuple[bool, str, str]:
     united = get_path_united(pfx)
@@ -59,7 +59,7 @@ class TrackMania:
 
 
     def install_modloader(self):
-        modloader_download = download_file("https://tomashu.pages.dev/modloader/modloader/TMLoader-1.0.1-win32.zip")
+        modloader_download = download_file("https://tomashu.pages.dev/modloader/modloader/TMLoader-1.0.1-win32.zip", self.pfx)
 
         self.tmloader_path = self.pfx + "/drive_c/Program Files/TMLoader/"
         with zipfile.ZipFile(modloader_download, "r") as zip:
@@ -80,11 +80,6 @@ class TrackMania:
 
         os.rename(self.path + "TmForever.exe", self.path + "TmForever.bak.exe")
         shutil.copy(self.tmloader_path + "ShimRun.exe", self.path + "TmForever.exe")
-
-        run_wine(self.tmloader_path + "TMLoader.exe", ["update"])
-
-
-
 
     def _check_for_tmloader(self):
         path = self.pfx + "/drive_c/Program Files/TMLoader/"
@@ -118,7 +113,7 @@ class TrackMania:
         os.remove(path)
 
     def is_uvme_installed(self):
-        self.uvme_uninstaller = windows_path_to_linux_path(find_through_uninstaller("TmNationsForever - UVME_is1", "UninstallString"))
+        self.uvme_uninstaller = windows_path_to_linux_path(find_through_uninstaller("TmNationsForever - UVME_is1", "UninstallString", self.pfx), self.pfx)
 
     def uninstall_uvme(self):
         if self.uvme_uninstaller:

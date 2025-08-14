@@ -1,13 +1,11 @@
 import threading
 import flet as ft
-from dotenv import load_dotenv
 import argparse
 from trackmania import TrackMania
 
 
 OPTIONS = ["Alpha2", "Beta", "Gamma", "Delta", "Epsilon"]
 
-load_dotenv()
 
 def log(line: str, log_view: ft.Text):
     log_view.value += ("" if log_view.value.endswith("\n") or log_view.value == "" else "\n") + line
