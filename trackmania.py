@@ -69,7 +69,10 @@ class TrackMania:
         Path(settings_path).mkdir(parents=True, exist_ok=True)
 
         with open(settings_path + "/settings.yaml", "w") as f:
-            yaml.safe_dump({"install": "C:/Program Files (x86)/TmUnitedForever"}, f)
+            path = "C:/Program Files (x86)/TmNationsForever"
+            if self.united:
+                path = "C:/Program Files (x86)/TmUnitedForever"
+            yaml.safe_dump({"install": path}, f)
 
         os.remove(modloader_download)
 

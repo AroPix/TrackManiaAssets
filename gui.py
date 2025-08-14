@@ -150,4 +150,5 @@ if __name__ == "__main__":
         print("!!!!")
 
     else:
+        tm = TrackMania()
         ft.app(target=main)
