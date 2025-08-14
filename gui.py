@@ -146,10 +146,8 @@ if __name__ == "__main__":
     if args.install:
         tm = TrackMania(pfx=args.install)
         tm.install_modloader()
-        exit()
-    if args.script:
+    elif args.script:
         print("!!!!")
-
     else:
         tm = TrackMania()
         ft.app(target=main)
