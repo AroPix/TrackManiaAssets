@@ -76,7 +76,7 @@ def get_wine_prefix():
     return os.environ.get("WINEPREFIX")
 
 def get_wine_executable():
-    return os.environ.get("WINEPREFIX")
+    return os.environ.get("WINE")
 
 def get_drive_c():
     return get_wine_prefix() + "/drive_c"
@@ -86,5 +86,7 @@ def download_file(url, folder=None):
         folder = get_drive_c()
     return wget.download(url, folder)
 
-def get_home_path():
-    return get_drive_c() + os.environ.get("HOMEPATH").replace("\\", "/")
+def get_home_path(pfx=None):
+    if pfx is None:
+        pfx = get_wine_prefix()
+    return pfx + "/drive_c/users/" + os.environ.get("USER")

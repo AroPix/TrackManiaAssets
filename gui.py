@@ -8,7 +8,6 @@ from trackmania import TrackMania
 OPTIONS = ["Alpha2", "Beta", "Gamma", "Delta", "Epsilon"]
 
 load_dotenv()
-tm = TrackMania()
 
 def log(line: str, log_view: ft.Text):
     log_view.value += ("" if log_view.value.endswith("\n") or log_view.value == "" else "\n") + line
@@ -136,13 +135,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="TrackMania helper")
     parser.add_argument(
         "--install",
-        action="store_true",
+        metavar="PATH",
         help="Install the modloader and exit",
-    )
-    parser.add_argument(
-        "--installtwinkie",
-        action="store_true",
-        help="Install Twinkietweaks inside TMLoader. Press launch once on the TwinkieTweaks profile!",
     )
     parser.add_argument(
         "--script",
@@ -152,12 +146,10 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.install:
-        tm = TrackMania()
+        tm = TrackMania(pfx=args.install)
         tm.install_modloader()
     if args.script:
         print("!!!!")
-    if args.installtwinkie:
-        tm.install_twinkietweaks()
 
     else:
         ft.app(target=main)
