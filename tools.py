@@ -56,14 +56,16 @@ def find_registry_value(reg_file_path, key_pattern, value_name):
                     return match.group(1)
     return None
 
-def path_reg_drive_c(file_name):
-    return os.environ.get("WINEPREFIX") + "/" + file_name
+def path_reg_drive_c(file_name, folder=None):
+    if folder is None:
+        folder = os.environ.get("WINEPREFIX")
+    return folder + "/" + file_name
 
-def find_value_system_registry(key_pattern, value_name):
-    return find_registry_value(path_reg_drive_c("system.reg"), key_pattern.replace("\\", "\\\\"), value_name)
+def find_value_system_registry(key_pattern, value_name, folder=None):
+    return find_registry_value(path_reg_drive_c("system.reg", folder=folder), key_pattern.replace("\\", "\\\\"), value_name)
 
-def find_through_uninstaller(key_name, value_name):
-    return find_value_system_registry("Software\\Wow6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\" + key_name, value_name)
+def find_through_uninstaller(key_name, value_name, folder=None):
+    return find_value_system_registry("Software\\Wow6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\" + key_name, value_name, folder)
 
 def windows_path_to_linux_path(windows_path):
     if windows_path is None:

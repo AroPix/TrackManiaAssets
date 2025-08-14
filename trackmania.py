@@ -24,14 +24,14 @@ def get_path_united():
 def get_path_nations():
     return windows_path_to_linux_path(find_through_uninstaller("TmNationsForever_is1", "InstallLocation"))
 
-def determine_united()-> tuple[bool, str, str]:
+def determine_united(pfx: str)-> tuple[bool, str, str]:
     united = get_path_united()
     if united:
-        return True, united, get_home_path() + "/Documents/TmForever"
+        return True, united, get_home_path(pfx) + "/Documents/TmForever"
     else:
         nations = get_path_nations()
         if nations:
-            return False, nations, get_home_path() + "/Documents/TmForever"
+            return False, nations, get_home_path(pfx) + "/Documents/TmForever"
         raise TrackManiaForeverNotFoundError()
 
 class TrackMania:
@@ -47,7 +47,7 @@ class TrackMania:
         if self.wine_path is None:
             self.wine_path = get_wine_executable()
         if self.path is None:
-            self.united, self.path, self.documents_folder = determine_united()
+            self.united, self.path, self.documents_folder = determine_united(self.pfx)
         if self.united is None:
             raise TrackManiaUndefinedGameVersionError
 
