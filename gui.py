@@ -271,6 +271,11 @@ if __name__ == "__main__":
         action="store_true",
         help="Test things",
     )
+    parser.add_argument(
+        "--openplanet",
+        action="store_true",
+        help="Start with TMUF OpenPlanet",
+    )
     args = parser.parse_args()
 
     if args.install:
@@ -280,4 +285,9 @@ if __name__ == "__main__":
         print("!!!!")
     else:
         tm = TrackMania()
-        ft.app(target=main)
+
+        if args.openplanet:
+            if tm.united:
+                tm.launch_openplanet()
+        else:
+            ft.app(target=main)

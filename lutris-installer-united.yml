@@ -29,6 +29,10 @@ game:
     - exe: $GAMEDIR/drive_c/gui
       name: Run GUI
       working_dir: $GAMEDIR/drive_c
+    - exe: $GAMEDIR/drive_c/gui
+      args: --openplanet
+      name: Run GUI
+      working_dir: $GAMEDIR/drive_c
   name: TMUnlimiter (+ Comp, CoreMod [default])
   prefix: $GAMEDIR
 installer:
