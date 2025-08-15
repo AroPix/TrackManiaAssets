@@ -207,5 +207,9 @@ class TrackMania:
 
         return data_list
 
+    def launch_openplanet(self):
+        """Only use if you have Openplanet installed (Private TMUF version)"""
+        run_wine(Path(self.path + "TmForever.bak.exe"), extra_env={"WINEDLLOVERRIDES": "dinput8.dll=n,b"})
+
 
 

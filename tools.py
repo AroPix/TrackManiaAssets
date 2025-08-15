@@ -13,11 +13,13 @@ class WineNotFoundError(Exception):
         self.message = message
         super().__init__(self.message)
 
-def run_wine(exe_path: Path, args=None) -> int:
+def run_wine(exe_path: Path, args=None, extra_env=None) -> int:
     if args is None:
         args = []
     env = os.environ.copy()
     wine = env.get("WINE")
+    if extra_env:
+        env.update(extra_env)
     if not wine or not Path(wine).is_file():
         raise WineNotFoundError()
     wp = env.get("WINEPREFIX")
