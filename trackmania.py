@@ -77,9 +77,9 @@ class TrackMania:
         os.remove(modloader_download)
 
         Path(self.tmloader_path + "database/TmForever/profiles").mkdir(parents=True, exist_ok=True)
-        self.create_tmloader_profile("default", ["TMUnlimiter", "Competition Patch", "CoreMod"], description="Default (TMUnlimiter, Competition Patch")
-        self.create_tmloader_profile("comp", ["Competition Patch", "CoreMod"], description="Competition Patch (No TMUnlimiter")
-        self.create_tmloader_profile("tminterface", ["TMUnlimiter", "TMInterface", "CoreMod"], description="TwinkieTweaks (+TMUnlimiter, Competition Patch, Coremod)")
+        self.create_tmloader_profile("default", ["TMUnlimiter", "Competition Patch", "CoreMod"])
+        self.create_tmloader_profile("comp", ["Competition Patch", "CoreMod"])
+        self.create_tmloader_profile("tminterface", ["TMUnlimiter", "TMInterface", "CoreMod"])
 
         os.rename(self.path + "TmForever.exe", self.path + "TmForever.bak.exe")
         shutil.copy(self.tmloader_path + "ShimRun.exe", self.path + "TmForever.exe")
@@ -116,7 +116,10 @@ class TrackMania:
         os.remove(path)
 
     def is_uvme_installed(self):
-        self.uvme_uninstaller = windows_path_to_linux_path(find_through_uninstaller("TmNationsForever - UVME_is1", "UninstallString", self.pfx), self.pfx)
+        if self.united:
+            self.uvme_uninstaller = windows_path_to_linux_path(find_through_uninstaller("TmUnitedForever - UVME_is1", "UninstallString", self.pfx), self.pfx)
+        else:
+            self.uvme_uninstaller = windows_path_to_linux_path(find_through_uninstaller("TmNationsForever - UVME_is1", "UninstallString", self.pfx), self.pfx)
 
     def uninstall_uvme(self):
         if self.uvme_uninstaller:
@@ -173,13 +176,13 @@ class TrackMania:
             else:
                 print("TwinkieTweaks Repository already installed!")
 
-        Path(self.tmloader_path + "database/TmForever/profiles/twinkie.yaml").mkdir(parents=True, exist_ok=True)
-        self.create_tmloader_profile("twinkietweaks", ["TMUnlimiter", "Twinkie", "Competition Patch", "CoreMod"], description="TwinkieTweaks (+TMUnlimiter, Competition Patch, Coremod)")
+        Path(self.tmloader_path + "database/TmForever/profiles/").mkdir(parents=True, exist_ok=True)
+        self.create_tmloader_profile("twinkietweaks", ["TMUnlimiter", "Twinkie", "Competition Patch", "CoreMod"])
 
         self.start_tmloader()
 
-    def create_tmloader_profile(self, name, mods: list, args: str = None, description = ""):
-        empty_profile = {"program": {"id": "TmForever"}, "mods": [], "description": description}
+    def create_tmloader_profile(self, name, mods: list, args: str = None):
+        empty_profile = {"program": {"id": "TmForever"}, "mods": []}
 
         if args is not None:
             empty_profile["args"] = args
