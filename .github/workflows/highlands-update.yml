@@ -1,0 +1,192 @@
+name: Sync Highlands installer from ModDB
+
+on:
+  schedule:
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    env:
+      ASSET_NAME: TmHighlands.zip
+      WIDGET_URL: https://www.moddb.com/mods/trackmania-highlands/downloads/trackmania-highlands-release-zip-archive/widget
+      UA: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36
+
+    steps:
+      - name: Download Highlands from ModDB widget
+        run: |
+          set -euo pipefail
+
+          echo "==> Fetch widget HTML"
+          HTML="$(curl -fsSL -A "$UA" "$WIDGET_URL")"
+
+          echo "==> Extract mirror URL from widget"
+          MIRROR_URL="$(
+            printf '%s\n' "$HTML" \
+              | grep -oP 'https://www\.moddb\.com/downloads/mirror/[^"]+' \
+              | head -n1
+          )"
+
+          if [ -z "${MIRROR_URL:-}" ]; then
+            echo "ERROR: Could not find mirror URL in widget HTML" >&2
+            exit 1
+          fi
+
+          echo "Mirror URL: $MIRROR_URL"
+
+          echo "==> Downloading file from ModDB..."
+          wget -q -L \
+            --user-agent="$UA" \
+            --header="Referer: $WIDGET_URL" \
+            -O "$ASSET_NAME" \
+            "$MIRROR_URL"
+
+          echo "==> Compute MD5 of downloaded file"
+          NEW_MD5="$(md5sum "$ASSET_NAME" | awk '{print $1}')"
+          echo "New MD5 from ModDB: $NEW_MD5"
+
+          echo "NEW_MD5=$NEW_MD5" >> "$GITHUB_ENV"
+
+      - name: Get latest release and current MD5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          echo "==> Fetch latest release JSON"
+          RELEASE_JSON="$(curl -fsSL \
+            -H "Authorization: Bearer $GITHUB_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/latest")"
+
+          RELEASE_ID="$(echo "$RELEASE_JSON" | jq -r '.id')"
+          UPLOAD_URL_TEMPLATE="$(echo "$RELEASE_JSON" | jq -r '.upload_url')"
+          OLD_BODY="$(echo "$RELEASE_JSON" | jq -r '.body')"
+
+          echo "Release ID: $RELEASE_ID"
+
+          OLD_MD5="$(printf '%s\n' "$OLD_BODY" \
+            | sed -n 's/.*<!-- HIGHLANDS_MD5_BEGIN -->.*`\([0-9a-fA-F]\{32\}\)`.*<!-- HIGHLANDS_MD5_END -->.*/\1/p')"
+
+          if [ -z "${OLD_MD5:-}" ]; then
+            echo "WARNING: No previous MD5 found in release body. Treating as first upload."
+          else
+            echo "Current MD5 in release: $OLD_MD5"
+          fi
+
+          echo "OLD_MD5=${OLD_MD5:-}" >> "$GITHUB_ENV"
+          echo "RELEASE_ID=$RELEASE_ID" >> "$GITHUB_ENV"
+          echo "UPLOAD_URL=${UPLOAD_URL_TEMPLATE%\{*}" >> "$GITHUB_ENV"
+          echo "OLD_BODY<<'EOF'" >> "$GITHUB_ENV"
+          echo "$OLD_BODY" >> "$GITHUB_ENV"
+          echo "EOF" >> "$GITHUB_ENV"
+
+      - name: Decide if update is needed
+        run: |
+          set -euo pipefail
+          echo "New MD5: $NEW_MD5"
+          echo "Old MD5: ${OLD_MD5:-<none>}"
+
+          if [ -n "${OLD_MD5:-}" ] && [ "$NEW_MD5" = "$OLD_MD5" ]; then
+            echo "==> MD5 unchanged – Highlands file is still the same ✅"
+            echo "UPDATE_NEEDED=false" >> "$GITHUB_ENV"
+          else
+            echo "==> MD5 changed or missing – updating asset and release ✅"
+            echo "UPDATE_NEEDED=true" >> "$GITHUB_ENV"
+          fi
+
+      - name: Stop early if no update needed
+        if: env.UPDATE_NEEDED == 'false'
+        run: |
+          echo "Nothing to do, exiting."
+
+      - name: Find and delete old asset (if exists)
+        if: env.UPDATE_NEEDED == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          echo "==> Listing existing assets on release $RELEASE_ID"
+          ASSETS_JSON="$(curl -fsSL \
+            -H "Authorization: Bearer $GITHUB_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/$RELEASE_ID/assets")"
+
+          ASSET_ID="$(echo "$ASSETS_JSON" | jq -r --arg name "$ASSET_NAME" '.[] | select(.name == $name) | .id' || true)"
+
+          if [ -n "$ASSET_ID" ] && [ "$ASSET_ID" != "null" ]; then
+            echo "Found old asset with id: $ASSET_ID – deleting..."
+            curl -fsSL -X DELETE \
+              -H "Authorization: Bearer $GITHUB_TOKEN" \
+              -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/assets/$ASSET_ID"
+            echo "Old asset deleted."
+          else
+            echo "No existing asset named $ASSET_NAME found on release."
+          fi
+
+      - name: Upload new asset
+        if: env.UPDATE_NEEDED == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          echo "==> Uploading new asset $ASSET_NAME"
+          curl -fsSL \
+            -X POST \
+            -H "Authorization: Bearer $GITHUB_TOKEN" \
+            -H "Content-Type: application/zip" \
+            --data-binary @"$ASSET_NAME" \
+            "${UPLOAD_URL}?name=${ASSET_NAME}"
+
+          echo "New asset uploaded."
+
+      - name: Update MD5 in release body
+        if: env.UPDATE_NEEDED == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          echo "==> Updating MD5 in release body"
+          export BODY="$OLD_BODY" NEW_MD5
+
+          NEW_BODY="$(python - << 'PY'
+          import os
+
+          body = os.environ["BODY"]
+          md5 = os.environ["NEW_MD5"]
+
+          begin = body.find("<!-- HIGHLANDS_MD5_BEGIN -->")
+          end   = body.find("<!-- HIGHLANDS_MD5_END -->", begin)
+
+          if begin == -1 or end == -1:
+              raise SystemExit("Markers <!-- HIGHLANDS_MD5_BEGIN/END --> not found in release body")
+
+          first_tick = body.find("`", begin, end)
+          second_tick = body.find("`", first_tick + 1, end)
+
+          if first_tick == -1 or second_tick == -1:
+              raise SystemExit("Backticked hash not found between markers")
+
+          new_body = body[:first_tick+1] + md5 + body[second_tick:]
+          print(new_body)
+          PY
+          )"
+
+          # Build JSON payload
+          jq -n --arg body "$NEW_BODY" '{body: $body}' > payload.json
+
+          curl -fsSL -X PATCH \
+            -H "Authorization: Bearer $GITHUB_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/$RELEASE_ID" \
+            --data-binary @payload.json
+
+          echo "Release body updated with new MD5."
