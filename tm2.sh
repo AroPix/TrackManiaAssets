@@ -61,7 +61,7 @@ select _ in \
   "Quit"
 do
   case "$REPLY" in
-    3) install_openplanet; break ;;
-    4) break ;;
+    1) install_openplanet; break ;;
+    2) break ;;
   esac
 done
